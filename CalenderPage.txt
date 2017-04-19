@@ -1,0 +1,310 @@
+<apex:page controller="CalendarPageController" action="{!pageLoad}"
+    showHeader="false" sidebar="false" cache="false">
+    <link href="{!$Resource.fullCalendarCSS}" rel="stylesheet" />
+    <link href="{!$Resource.fullCalendarPrintCSS}" rel="stylesheet" media="print" />
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+    <script src="{!$Resource.fullCalendarMinJS}"></script>
+
+    <apex:stylesheet value="{!URLFOR($Resource.SLDS0101,'assets/styles/salesforce-lightning-design-system.min.css')}" />
+
+
+    <div class="header-section">
+        <apex:image url="{!$Resource.CalendarPageHeader}" styleclass="header-logo-img" />
+    </div>
+    <div class="slds">
+        <div class="slds-grid">
+            <div class="slds-col">
+                <apex:outputPanel id="calPanel">
+                    <apex:form >
+                        <div id="cal-options">
+                            <apex:commandButton value="{!IF(includeMyEvents,'Hide My Events','Show My Events')}"
+                                action="{!toggleMyEvents}" />
+                        </div>
+                        <div id="cal-legend">
+                            <ul>
+                                <li style="IF (includeMyEvents,'','display: none')"><span
+                                    class="event-personal"></span>Publication Dates</li>
+                            </ul>
+                            <div style="clear: both;">
+                                <!--fix floats-->
+                            </div>
+                        </div>
+                        <div style="clear: both;">
+                            <!--fix floats-->
+                        </div>
+                        <div id="calendar"></div>
+                        <!-- HIDDEN / POP-UP DIV -->
+                        <div class="event-pop-up">
+                            <span class="slds-text-heading--small"
+                                style="font-color: #333435"> <b>Event Details</b></span> <span></span><br />
+                            <br />
+                            <div>
+                                <table class="slds-table slds-table--bordered ">
+                                    <tbody>
+                                        <tr>
+                                            <td data-label="AssignedTo">
+                                                <div class="font-weight-bold slds-truncate">
+                                                    Assigned To</div>
+                                            </td>
+                                            <td id="AssignedToValue" data-label="Number">Sayali</td>
+                                        </tr>
+                                        <tr>
+                                            <td data-label="RelatedTo">
+                                                    <div class="font-weight-bold slds-truncate">Related To</div></td>
+                                            <td id="RelatedToValue" data-label="Number">Related To Name</td>
+                                        </tr>
+                                        <tr>
+                                            <td data-label="Subject">
+                                                <div class="slds-truncate">
+                                                    Subject</div></td>
+                                            <td id="SubjectValue" data-label="Number">Meeting</td>
+                                        </tr>
+                                        <tr>
+                                            <td data-label="Start">
+                                                <div class="slds-truncate">
+                                                    Start</div></td>
+                                            <td id="startValue" data-label="Number">Today</td>
+                                        </tr>
+                                        <tr>
+                                            <td data-label="End">
+                                                <div class="slds-truncate">
+                                                    End</div></td>
+                                            <td id="EndValue" data-label="Number">Today</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </apex:form>
+                </apex:outputPanel>
+            </div>
+        </div>
+    </div>
+    <div class="footer-section">
+        <font color="black">copyright 2016 Eternus Solutions All Rights
+            Reserved | </font> | <a href="http://www.eternussolutions.com/contact_us"
+            target="_blank">Privacy Policy</a>
+    </div>
+    <script>
+        //We need to wrap everything in a doc.ready function so that the code fires after the DOM is loaded
+        $(document).ready(function() {  
+            var testEvent = "{!events}";
+            var endMonthValue ;
+            var startMonthValue ;
+            console.log('events***'+testEvent );
+            debugger;
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay'
+                },
+                editable: false,
+                events:
+                [
+                    //At run time, this APEX Repeat will reneder the array elements for the events array
+                    <apex:repeat value="{!events}" var="e">
+                        {
+                            title: "{!e.title}",
+                            start: '{!e.startString}',
+                            end: '{!e.endString}',
+                            url: '{!e.url}',
+                            allDay: {!e.allDay},
+                            className: '{!e.className}',
+                            AssignedTo : '{!e.AssignedTo}',
+                            RelatedTo : '{!e.RelatedTo}'
+                        },
+                    </apex:repeat>
+                ],
+                eventMouseover: function(calEvent, jsEvent, view) {
+                   //debugger
+                   console.log('calEvent***',calEvent);
+                   //console.log('AssignTo***',AssignTo);
+                   // change the day's background color just for fun
+                   $(this).css('background-color', 'red');
+                   //$(".event-pop-up").innerhtml(calEvent);
+                   if(calEvent.AssignedTo != null) {
+                        document.getElementById('AssignedToValue').innerText = calEvent.AssignedTo;
+                   }
+                   else{
+                    document.getElementById('AssignedToValue').innerText = ' ';
+                   }
+                    if(calEvent.RelatedTo != null) {
+                        document.getElementById('RelatedToValue').innerText = calEvent.RelatedTo;
+                   }
+                   document.getElementById('SubjectValue').innerHTML = calEvent.title;
+
+                    console.log('calEvent.allday****',calEvent.allDay);
+                    
+                    
+                    if(!calEvent.allDay) {
+                        console.log('calEvent.allday inside if****',calEvent.allDay);
+                       //get time in hours and mins from datetime
+                           var starthours = calEvent.start.getHours();
+                           var startminutes = calEvent.start.getMinutes();
+                           if (startminutes < 10)
+                            startminutes = "0" + startminutes;
+                            var startsuffix = "AM";
+                            if (starthours >= 12) {
+                            startsuffix = "PM";
+                            starthours = starthours - 12;
+                            }
+                            if (starthours == 0) {
+                                starthours = 12;
+                            }
+                            console.log('starthours***',starthours);
+                            // 1 is added to monthvalue as JS months range starts from 0 and
+                            // we get -1 month value
+                            startMonthValue = calEvent.start.getMonth() +1;
+                            console.log('calEvent.start.getMonth()---',calEvent.start.getMonth());
+                            document.getElementById('startValue').innerText = calEvent.start.getDate()
+                                + '/' + startMonthValue + '/'+ calEvent.start.getFullYear() + ' '+ 
+                                starthours + ":" + startminutes + " " + startsuffix;
+
+                        var endhours = calEvent.end.getHours();
+                        var endminutes = calEvent.end.getMinutes();
+                        if (endminutes < 10)
+                            endminutes = "0" + endminutes;
+                            var endsuffix = "AM";
+                            if (endhours >= 12) {
+                            endsuffix = "PM";
+                            endhours = endhours - 12;
+                         }
+                        if (endhours == 0) {
+                            endhours = 12;
+                        }
+                        endMonthValue = calEvent.end.getMonth() +1;
+                        document.getElementById('EndValue').innerText = calEvent.end.getDate() 
+                        + '/' +endMonthValue+ '/'+ calEvent.end.getFullYear()+ ' '+ endhours + ":" 
+                        + endminutes + " " + endsuffix;
+                   }
+                   else {
+                        startMonthValue = calEvent.start.getMonth() +1;
+                        document.getElementById('startValue').innerText = calEvent.start.getDate() 
+                        + '/' + startMonthValue + '/'+ calEvent.start.getFullYear() ;
+                        //endMonthValue = calEvent.end.getMonth() +1;
+                        //startMonthValue is added in endEnd for AllDay events as End date for allday events
+                        document.getElementById('EndValue').innerText = calEvent.start.getDate() 
+                        + '/' + startMonthValue + '/'+ calEvent.start.getFullYear() ;
+                   }
+
+                   $(".event-pop-up").show()
+                    .css('top', jsEvent.pageY-100)
+                    .css('left',jsEvent.pageX)
+                    .appendTo('#calendar');
+
+               },
+                eventMouseout: function(calEvent, jsEvent, view) {
+                   //debugger
+                   $(this).css('background-color', '#1797c0');
+                   $(".event-pop-up").hide();
+               }
+            });
+
+            });
+
+    </script>
+    <!--some styling. Modify this to fit your needs-->
+    <style>
+    #cal-options {
+        float: left;
+    }
+    
+    #cal-legend {
+        float: right;
+    }
+    
+    #cal-legend ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    
+    #cal-legend ul li {
+        margin: 0;
+        padding: 5px;
+        float: left;
+    }
+    
+    #cal-legend ul li span {
+        display: block;
+        height: 16px;
+        width: 16px;
+        margin-right: 4px;
+        float: left;
+        border-radius: 4px;
+    }
+    
+    #calendar {
+        margin-top: 20px;
+    }
+    
+    #calendar a:hover {
+        color: #fff !important;
+    }
+    
+    .fc-event-inner {
+        padding: 3px;
+    }
+    
+    .event-birthday {
+        background: #56458c;
+        border-color: #56458c;
+    }
+    
+    .event-campaign {
+        background: #cc9933;
+        border-color: #cc9933;
+    }
+    
+    .event-personal {
+        background: #1797c0;
+        border-color: #1797c0;
+    }
+    
+    .event-pop-up {
+        display: none;
+        position: absolute;
+        height: 160px;
+        width: 300px;
+        padding: 10px;
+        background: white;
+        color: #000000;
+        border: 1px solid #bbb;
+        font-size: 90%;
+        box-shadow: 2px 3px 10px #999;
+        z-index: 1000;
+    }
+    
+    .header-section {
+        background: #f8f8f8;
+        /*         padding-left: 2em; */
+        border-bottom: 1px solid #f6f6f6;
+    }
+    
+    .header-logo-img {
+        /*             margin-left: 31%; */
+        
+    }
+    
+    .footer-section {
+        background: #f8f8f8;
+        padding: 30px;
+        color: #fff;
+        font-size: 12px;
+        padding-top: 30px;
+        padding-bottom: 30px;
+        /*         position: absolute; */
+        width: 100%;
+        bottom: 0;
+    }
+    
+    .footer-section a {
+        color: black;
+        cursor: pointer;
+    }
+</style>
+</apex:page>
+                  
